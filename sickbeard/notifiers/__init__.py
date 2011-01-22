@@ -3,22 +3,26 @@ import sickbeard
 import xbmc
 import growl
 import tweet
+import irc
 
 from sickbeard.common import *
 
 xbmc_notifier = xbmc.XBMCNotifier()
 growl_notifier = growl.GrowlNotifier()
 twitter_notifier = tweet.TwitterNotifier()
+irc_notifier = irc.IRCNotifier()
 
 def notify_download(ep_name):
     xbmc_notifier.notify_download(ep_name)
     growl_notifier.notify_download(ep_name)
     twitter_notifier.notify_download(ep_name)
+    irc_notifier.notify_download(ep_name)
 
 def notify_snatch(ep_name):
     xbmc_notifier.notify_snatch(ep_name)
     growl_notifier.notify_snatch(ep_name)
     twitter_notifier.notify_snatch(ep_name)
+    irc_notifier.notify_snatch(ep_name)
 
 def notify(type, message):
 
@@ -29,6 +33,7 @@ def notify(type, message):
             xbmc.notifyXBMC(message, notifyStrings[type])
 
     growl.sendGrowl(notifyStrings[type], message)
+    irc_notifier.notify(notifyStrings[type], message)
 
     if type == NOTIFY_DOWNLOAD:
         tweet.notifyTwitter(message)

@@ -49,6 +49,20 @@
 
   });
 
+  \$('#testIRC').click(function(){
+    
+    var irc_server = \$("#irc_server").val();
+    var irc_server_password = \$("#irc_server_password").val();
+    /*var irc_server_encryption = \$("#irc_server_encryption").val();*/
+    var irc_server_encryption = "off"
+    var irc_nickname = \$("#irc_nickname").val();
+    var irc_channel = \$("#irc_channel").val();
+    var irc_channel_key = \$("#irc_channel_key").val();
+
+    \$.get("$sbRoot/home/testIRC", {'server': irc_server, 'password': irc_server_password, 'ssl': irc_server_encryption, 'nickname': irc_nickname, 'channel': irc_channel, 'channel_key': irc_channel_key});
+
+  });
+
 });  
       
 </script>
@@ -286,6 +300,113 @@
 
                     </fieldset>
                 </div><!-- /component-group -->
+
+                <div id="core-component-group4" class="component-group clearfix">
+                
+                    <div class="component-group-desc">
+                        <h3>IRC</h3>
+                        <p>Internet Relay Chat. Old school communication.</p>
+                    </div>
+
+                    <fieldset class="component-group-list">
+                        <div class="field-pair">
+                            <input type="checkbox" name="use_irc" id="use_irc" #if $sickbeard.USE_IRC then "checked=\"checked\"" else ""# />
+                            <label class="clearfix" for="use_irc">
+                                <span class="component-title">Enable</span>
+                                <span class="component-desc">Should Sick Beard send IRC notifications?</span>
+                            </label>
+                            <label class="nocheck clearfix" for="use_irc">
+                                <span class="component-title">&nbsp;</span>
+                                <span class="component-desc">You may want to use an encrypted server.</span>
+                            </label>
+                        </div>
+
+                        <div class="field-pair">
+                            <input type="checkbox" name="irc_notify_onsnatch" id="irc_notify_onsnatch" #if $sickbeard.IRC_NOTIFY_ONSNATCH then "checked=\"checked\"" else ""# /> 
+                            <label class="clearfix" for="irc_notify_onsnatch">
+                                <span class="component-title">Notify on Snatch</span>
+                                <span class="component-desc">Send notification when we start a download?</span>
+                            </label>
+                        </div>
+
+                        <div class="field-pair">
+                            <input type="checkbox" name="irc_notify_ondownload" id="irc_notify_ondownload" #if $sickbeard.IRC_NOTIFY_ONDOWNLOAD then "checked=\"checked\"" else ""# />
+                            <label class="clearfix" for="irc_notify_ondownload">
+                                <span class="component-title">Notify on Download</span>
+                                <span class="component-desc">Send notification when we finish a download?</span>
+                            </label>
+                        </div>
+
+                        <div class="field-pair">
+                            <input type="checkbox" name="irc_server_encryption" id="irc_server_encryption" #if $sickbeard.IRC_SERVER_ENCRYPTION then "checked=\"checked\"" else ""# />
+                            <label class="clearfix" for="irc_server_encryption">
+                                <span class="component-title">Server uses Encryption</span>
+                                <span class="component-desc">Is the server using encryption?</span>
+                            </label>
+                        </div>
+
+                        <div class="field-pair">
+                            <label class="nocheck clearfix">
+                                <span class="component-title">IRC IP:Port</span>
+                                <input type="text" name="irc_server" id="irc_server" value="$sickbeard.IRC_SERVER" size="35" />
+                            </label>
+                            <label class="nocheck clearfix">
+                                <span class="component-title">&nbsp;</span>
+                                <span class="component-desc">Server running IRC (eg. irc.homelien.no:6667)</span>
+                            </label>
+                        </div>
+
+                        <div class="field-pair">
+                            <label class="nocheck clearfix">
+                                <span class="component-title">IRC Password</span>
+                                <input type="text" name="irc_server_password" id="irc_server_password" value="$sickbeard.IRC_SERVER_PASSWORD" size="35" />
+                            </label>
+                            <label class="nocheck clearfix">
+                                <span class="component-title">&nbsp;</span>
+                                <span class="component-desc">Password for the IRC server.</span>
+                            </label>
+                        </div>
+
+                        <div class="field-pair">
+                            <label class="nocheck clearfix">
+                                <span class="component-title">IRC Nickname</span>
+                                <input type="text" name="irc_nickname" id="irc_nickname" value="$sickbeard.IRC_NICKNAME" size="35" />
+                            </label>
+                            <label class="nocheck clearfix">
+                                <span class="component-title">&nbsp;</span>
+                                <span class="component-desc">Nickname to use on IRC.</span>
+                            </label>
+                        </div>
+
+                        <div class="field-pair">
+                            <label class="nocheck clearfix">
+                                <span class="component-title">IRC Channel</span>
+                                <input type="text" name="irc_channel" id="irc_channel" value="$sickbeard.IRC_CHANNEL" size="35" />
+                            </label>
+                            <label class="nocheck clearfix">
+                                <span class="component-title">&nbsp;</span>
+                                <span class="component-desc">Channel to post notifications to.</span>
+                            </label>
+                        </div>
+
+                        <div class="field-pair">
+                            <label class="nocheck clearfix">
+                                <span class="component-title">IRC Channel Key</span>
+                                <input type="text" name="irc_channel_key" id="irc_channel_key" value="$sickbeard.IRC_CHANNEL_KEY" size="35" />
+                            </label>
+                            <label class="nocheck clearfix">
+                                <span class="component-title">&nbsp;</span>
+                                <span class="component-desc">Password for the IRC channel.</span>
+                            </label>
+                        </div>
+
+                    <input type="button" value="Test IRC" id="testIRC" />
+                    <input type="submit" value="Save Changes" />
+
+                    </fieldset>
+                </div><!-- /component-group -->
+
+
 
             <br/><input type="submit" value="Save Changes" /><br/>
 

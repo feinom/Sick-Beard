@@ -34,6 +34,7 @@ from providers import ezrss, nzbs_org, nzbmatrix, tvbinz, nzbsrus, binreq, newzn
 from sickbeard import searchCurrent, searchBacklog, showUpdater, versionChecker, properFinder, autoPostProcesser
 from sickbeard import helpers, db, exceptions, show_queue, search_queue, scheduler
 from sickbeard import logger
+from sickbeard import notifiers
 
 from sickbeard.common import *
 
@@ -191,6 +192,16 @@ TWITTER_USERNAME = None
 TWITTER_PASSWORD = None
 TWITTER_PREFIX = None
 
+USE_IRC = False
+IRC_NOTIFY_ONSNATCH = False
+IRC_NOTIFY_ONDOWNLOAD = False
+IRC_SERVER_ENCRYPTION = False
+IRC_SERVER = None
+IRC_SERVER_PASSWORD = None
+IRC_NICKNAME = None
+IRC_CHANNEL = None
+IRC_CHANNEL_KEY = None
+
 COMING_EPS_LAYOUT = None
 COMING_EPS_DISPLAY_PAUSED = None
 COMING_EPS_SORT = None
@@ -309,7 +320,9 @@ def initialize(consoleLogging=True):
                 NAMING_DATES, EXTRA_SCRIPTS, USE_TWITTER, TWITTER_USERNAME, TWITTER_PASSWORD, TWITTER_PREFIX, \
                 USE_BANNER, USE_LISTVIEW, METADATA_XBMC, METADATA_MEDIABROWSER, METADATA_PS3, metadata_provider_dict, \
                 NEWZBIN, NEWZBIN_USERNAME, NEWZBIN_PASSWORD, GIT_PATH, MOVE_ASSOCIATED_FILES, \
-                COMING_EPS_LAYOUT, COMING_EPS_SORT, COMING_EPS_DISPLAY_PAUSED, METADATA_WDTV
+                COMING_EPS_LAYOUT, COMING_EPS_SORT, COMING_EPS_DISPLAY_PAUSED, METADATA_WDTV, \
+                IRC_NOTIFY_ONSNATCH, IRC_NOTIFY_ONDOWNLOAD, USE_IRC, IRC_SERVER, IRC_SERVER_PASSWORD, \
+                IRC_SERVER_ENCRYPTION, IRC_NICKNAME, IRC_CHANNEL, IRC_CHANNEL_KEY
 
         if __INITIALIZED__:
             return False
@@ -324,6 +337,7 @@ def initialize(consoleLogging=True):
         CheckSection('XBMC')
         CheckSection('Growl')
         CheckSection('Twitter')
+        CheckSection('IRC')
 
         LOG_DIR = check_setting_str(CFG, 'General', 'log_dir', 'Logs')
         if not helpers.makeDir(LOG_DIR):
@@ -456,6 +470,16 @@ def initialize(consoleLogging=True):
         TWITTER_USERNAME = check_setting_str(CFG, 'Twitter', 'twitter_username', '')
         TWITTER_PASSWORD = check_setting_str(CFG, 'Twitter', 'twitter_password', '')
         TWITTER_PREFIX = check_setting_str(CFG, 'Twitter', 'twitter_prefix', 'Sick Beard')
+
+        USE_IRC = bool(check_setting_int(CFG, 'IRC', 'use_irc', 0))
+        IRC_NOTIFY_ONSNATCH = bool(check_setting_int(CFG, 'IRC', 'irc_notify_onsnatch', 0))
+        IRC_NOTIFY_ONDOWNLOAD = bool(check_setting_int(CFG, 'IRC', 'irc_notify_ondownload', 0))
+        IRC_SERVER_ENCRYPTION = bool(check_setting_int(CFG, 'IRC', 'irc_server_encryption', 0))
+        IRC_SERVER = check_setting_str(CFG, 'IRC', 'irc_server', '')
+        IRC_SERVER_PASSWORD = check_setting_str(CFG, 'IRC', 'irc_server_password', '')
+        IRC_NICKNAME = check_setting_str(CFG, 'IRC', 'irc_nickname', '')
+        IRC_CHANNEL = check_setting_str(CFG, 'IRC', 'irc_channel', '')
+        IRC_CHANNEL_KEY = check_setting_str(CFG, 'IRC', 'irc_channel_key', '')
 
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
 
@@ -590,6 +614,10 @@ def start():
     with INIT_LOCK:
 
         if __INITIALIZED__:
+            
+            # start the irc bot if it has been enabled
+            if sickbeard.USE_IRC:
+                notifiers.irc_notifier.start()
 
             # start the search scheduler
             currentSearchScheduler.thread.start()
@@ -625,9 +653,13 @@ def halt ():
         if __INITIALIZED__:
 
             logger.log(u"Aborting all threads")
+            
+            # shut down IRC bot if it is active
+            if sickbeard.USE_IRC:
+                notifiers.irc_notifier.stop()
 
             # abort all the threads
-
+            
             currentSearchScheduler.abort = True
             logger.log(u"Waiting for the SEARCH thread to exit")
             try:
@@ -876,6 +908,17 @@ def save_config():
     new_config['Twitter']['twitter_username'] = TWITTER_USERNAME
     new_config['Twitter']['twitter_password'] = TWITTER_PASSWORD
     new_config['Twitter']['twitter_prefix'] = TWITTER_PREFIX
+
+    new_config['IRC'] = {}
+    new_config['IRC']['use_irc'] = int(USE_IRC)
+    new_config['IRC']['irc_notify_onsnatch'] = int(IRC_NOTIFY_ONSNATCH)
+    new_config['IRC']['irc_notify_ondownload'] = int(IRC_NOTIFY_ONDOWNLOAD)
+    new_config['IRC']['irc_server_encryption'] = int(IRC_SERVER_ENCRYPTION)
+    new_config['IRC']['irc_server'] = IRC_SERVER
+    new_config['IRC']['irc_server_password'] = IRC_SERVER_PASSWORD
+    new_config['IRC']['irc_nickname'] = IRC_NICKNAME
+    new_config['IRC']['irc_channel'] = IRC_CHANNEL
+    new_config['IRC']['irc_channel_key'] = IRC_CHANNEL_KEY
 
     new_config['Newznab'] = {}
     new_config['Newznab']['newznab_data'] = '!!!'.join([x.configStr() for x in newznabProviderList])

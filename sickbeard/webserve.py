@@ -938,7 +938,10 @@ class ConfigNotifications:
     def saveNotifications(self, use_xbmc=None, xbmc_notify_onsnatch=None, xbmc_notify_ondownload=None,
                           xbmc_update_library=None, xbmc_update_full=None, xbmc_host=None, xbmc_username=None, xbmc_password=None,
                           use_growl=None, growl_notify_onsnatch=None, growl_notify_ondownload=None, growl_host=None, growl_password=None, 
-                          use_twitter=None, twitter_notify_onsnatch=None, twitter_notify_ondownload=None):
+                          use_twitter=None, twitter_notify_onsnatch=None, twitter_notify_ondownload=None, 
+                          use_irc=None, irc_notify_onsnatch=None, irc_notify_ondownload=None, irc_server_encryption=None,
+                          irc_server=None, irc_server_password=None, irc_channel=None, irc_channel_key=None, irc_nickname=None
+                          ):
 
         results = []
 
@@ -995,6 +998,23 @@ class ConfigNotifications:
         else:
             use_twitter = 0
 
+        if irc_notify_onsnatch == "on":
+            irc_notify_onsnatch = 1
+        else:
+            irc_notify_onsnatch = 0
+        if irc_notify_ondownload == "on":
+            irc_notify_ondownload = 1
+        else:
+            irc_notify_ondownload = 0
+        if use_irc == "on":
+            use_irc = 1
+        else:
+            use_irc = 0
+        if irc_server_encryption == "on":
+            irc_server_encryption = 1
+        else:
+            irc_server_encryption = 0
+
         sickbeard.USE_XBMC = use_xbmc
         sickbeard.XBMC_NOTIFY_ONSNATCH = xbmc_notify_onsnatch
         sickbeard.XBMC_NOTIFY_ONDOWNLOAD = xbmc_notify_ondownload
@@ -1013,7 +1033,17 @@ class ConfigNotifications:
         sickbeard.USE_TWITTER = use_twitter
         sickbeard.TWITTER_NOTIFY_ONSNATCH = twitter_notify_onsnatch
         sickbeard.TWITTER_NOTIFY_ONDOWNLOAD = twitter_notify_ondownload
-
+        
+        sickbeard.USE_IRC = use_irc
+        sickbeard.IRC_NOTIFY_ONSNATCH = irc_notify_onsnatch
+        sickbeard.IRC_NOTIFY_ONDOWNLOAD = irc_notify_ondownload
+        sickbeard.IRC_SERVER_ENCRYPTION = irc_server_encryption
+        sickbeard.IRC_SERVER = irc_server
+        sickbeard.IRC_SERVER_PASSWORD = irc_server_password
+        sickbeard.IRC_CHANNEL = irc_channel
+        sickbeard.IRC_CHANNEL_KEY = irc_channel_key
+        sickbeard.IRC_NICKNAME = irc_nickname
+ 
         sickbeard.save_config()
 
         if len(results) > 0:
@@ -1349,6 +1379,16 @@ class Home:
     def testXBMC(self, host=None, username=None, password=None):
         notifiers.xbmc_notifier.test_notify(urllib.unquote_plus(host), username, password)
         return "Tried sending XBMC notification to "+urllib.unquote_plus(host)
+
+    @cherrypy.expose
+    def testIRC(self, server=None, password=None, ssl=False, nickname=None, channel=None, channel_key=None):
+        if ssl == "on":
+            ssl = True
+        else:
+            ssl = False
+        result = notifiers.irc_notifier.test_notify(server, password, ssl, nickname, channel, channel_key)
+        print result
+        return result
 
     @cherrypy.expose
     def shutdown(self):
