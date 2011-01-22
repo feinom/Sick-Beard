@@ -58,7 +58,7 @@ class IRCNotifier(irclib.IRC, threading.Thread):
 
     def notify_download(self, ep_name):
         print "IRC: notify download"
-        self.notify("%s: %s" % (common.notifyStrings[common.NOTIFY_DOWNLOAD], ep_name))
+        self.notify(None, "%s: %s" % (common.notifyStrings[common.NOTIFY_DOWNLOAD], ep_name))
 
     def test_notify(self, host, password, ssl, nickname, channel, channel_key):
         return "IRC test not implemented yet... Please restart sickbeard to test."
