@@ -35,30 +35,32 @@ class IRCNotifier(irclib.IRC, threading.Thread):
 
     def run(self):
         threading.Thread.run(self)
+        self.srv = self.server()
+        self.server_addr, self.server_port = sickbeard.IRC_SERVER.split(":")
         self.connect()
+        self.process_forever()
 
     def stop(self):
         self.disconnect_all(message="SickBeard")
 
     def connect(self):
         print "IRC: STARTING IRC BOT"
-        self.srv = self.server()
-        self.server_addr, self.server_port = sickbeard.IRC_SERVER.split(":")
         self.srv.connect(self.server_addr, int(self.server_port), sickbeard.IRC_NICKNAME,\
                             password = sickbeard.IRC_SERVER_PASSWORD, ssl=sickbeard.IRC_SERVER_ENCRYPTION)
         while (self.srv.is_connected() == 0):
             pass
         print "IRC: JOINING CHANNEL"
         self.srv.join(sickbeard.IRC_CHANNEL, key=sickbeard.IRC_CHANNEL_KEY)
-        self.process_forever()
 
     def notify_snatch(self, ep_name):
-        print "IRC: notify snatch"
-        self.notify(None, "%s: %s" % (common.notifyStrings[common.NOTIFY_SNATCH], ep_name))
+        if sickbeard.IRC_NOTIFY_ONSNATCH:
+            print "IRC: notify snatch"
+            self.notify(None, "%s: %s" % (common.notifyStrings[common.NOTIFY_SNATCH], ep_name))
 
     def notify_download(self, ep_name):
-        print "IRC: notify download"
-        self.notify(None, "%s: %s" % (common.notifyStrings[common.NOTIFY_DOWNLOAD], ep_name))
+        if sickbeard.IRC_NOTIFY_ONDOWNLOAD:
+            print "IRC: notify download"
+            self.notify(None, "%s: %s" % (common.notifyStrings[common.NOTIFY_DOWNLOAD], ep_name))
 
     def test_notify(self, host, password, ssl, nickname, channel, channel_key):
         return "IRC test not implemented yet... Please restart sickbeard to test."
@@ -74,7 +76,11 @@ class IRCNotifier(irclib.IRC, threading.Thread):
 
     def notify(self, type, msg):
         print "IRC: notify; ", type, msg
-        self.srv.privmsg(sickbeard.IRC_CHANNEL, msg)
+        try:
+            self.srv.privmsg(sickbeard.IRC_CHANNEL, msg)
+        except ServerNotConnectedError:
+            self.connect()
+            self.srv.privmsg(sickbeard.IRC_CHANNEL, msg)
 
 
 notifier = IRCNotifier

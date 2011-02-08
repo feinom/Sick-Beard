@@ -33,7 +33,9 @@ def notify(type, message):
             xbmc.notifyXBMC(message, notifyStrings[type])
 
     growl.sendGrowl(notifyStrings[type], message)
-    irc_notifier.notify(notifyStrings[type], message)
+
+    if type == NOTIFY_SNATCH:
+        irc_notifier.notify(notifyStrings[type], message)
 
     if type == NOTIFY_DOWNLOAD:
         tweet.notifyTwitter(message)
