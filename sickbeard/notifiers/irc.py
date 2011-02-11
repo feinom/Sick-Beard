@@ -48,7 +48,7 @@ class IRCNotifier(irclib.IRC, threading.Thread):
         self.srv.connect(self.server_addr, int(self.server_port), sickbeard.IRC_NICKNAME,\
                             password = sickbeard.IRC_SERVER_PASSWORD, ssl=sickbeard.IRC_SERVER_ENCRYPTION)
         while (self.srv.is_connected() == 0):
-            pass
+            time.sleep(1)
         print "IRC: JOINING CHANNEL"
         self.srv.join(sickbeard.IRC_CHANNEL, key=sickbeard.IRC_CHANNEL_KEY)
 
@@ -78,7 +78,7 @@ class IRCNotifier(irclib.IRC, threading.Thread):
         print "IRC: notify; ", type, msg
         try:
             self.srv.privmsg(sickbeard.IRC_CHANNEL, msg)
-        except ServerNotConnectedError:
+        except irclib.ServerNotConnectedError:
             self.connect()
             self.srv.privmsg(sickbeard.IRC_CHANNEL, msg)
 
