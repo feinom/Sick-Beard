@@ -229,10 +229,19 @@ class GenericMetadata():
         ep_obj: a TVEpisode object for which to grab the thumb URL
         """
         all_eps = [ep_obj] + ep_obj.relatedEps
+
+        tvdb_lang = ep_obj.show.lang
     
         # get a TVDB object
         try:
-            t = tvdb_api.Tvdb(actors=True, **sickbeard.TVDB_API_PARMS)
+            # There's gotta be a better way of doing this but we don't wanna
+            # change the language value elsewhere
+            ltvdb_api_parms = sickbeard.TVDB_API_PARMS.copy()
+
+            if tvdb_lang and not tvdb_lang == 'en':
+                ltvdb_api_parms['language'] = tvdb_lang
+
+            t = tvdb_api.Tvdb(actors=True, **ltvdb_api_parms)
             tvdb_show_obj = t[ep_obj.show.tvdbid]
         except tvdb_exceptions.tvdb_shownotfound, e:
             raise exceptions.ShowNotFoundException(str(e))
@@ -503,8 +512,17 @@ class GenericMetadata():
         Returns: the binary image data if available, or else None
         """
 
+        tvdb_lang = show_obj.lang
+
         try:
-            t = tvdb_api.Tvdb(banners=True, **sickbeard.TVDB_API_PARMS)
+            # There's gotta be a better way of doing this but we don't wanna
+            # change the language value elsewhere
+            ltvdb_api_parms = sickbeard.TVDB_API_PARMS.copy()
+
+            if tvdb_lang and not tvdb_lang == 'en':
+                ltvdb_api_parms['language'] = tvdb_lang
+
+            t = tvdb_api.Tvdb(banners=True, **ltvdb_api_parms)
             tvdb_show_obj = t[show_obj.tvdbid]
         except (tvdb_exceptions.tvdb_error, IOError), e:
             logger.log(u"Unable to look up show on TVDB, not downloading images: "+str(e).decode('utf-8'), logger.ERROR)
@@ -531,8 +549,17 @@ class GenericMetadata():
         # This holds our resulting dictionary of season art
         result = {}
     
+        tvdb_lang = show_obj.lang
+
         try:
-            t = tvdb_api.Tvdb(banners=True, **sickbeard.TVDB_API_PARMS)
+            # There's gotta be a better way of doing this but we don't wanna
+            # change the language value elsewhere
+            ltvdb_api_parms = sickbeard.TVDB_API_PARMS.copy()
+
+            if tvdb_lang and not tvdb_lang == 'en':
+                ltvdb_api_parms['language'] = tvdb_lang
+
+            t = tvdb_api.Tvdb(banners=True, **ltvdb_api_parms)
             tvdb_show_obj = t[show_obj.tvdbid]
         except (tvdb_exceptions.tvdb_error, IOError), e:
             logger.log(u"Unable to look up show on TVDB, not downloading images: "+str(e).decode('utf-8'), logger.ERROR)
@@ -564,3 +591,45 @@ class GenericMetadata():
                 continue
 
         return result
+
+    def retrieveShowMetadata(self, dir):
+    
+        empty_return = (None, None)
+    
+        metadata_path = ek.ek(os.path.join, dir, self._show_file_name)
+    
+        if not ek.ek(os.path.isdir, dir) or not ek.ek(os.path.isfile, metadata_path):
+            logger.log(u"Can't load the metadata file from "+repr(metadata_path)+", it doesn't exist", logger.DEBUG)
+            return empty_return
+
+        logger.log(u"Loading show info from metadata file in "+dir, logger.DEBUG)
+    
+        try:
+            xmlFileObj = ek.ek(open, metadata_path, 'r')
+            showXML = etree.ElementTree(file = xmlFileObj)
+    
+            if showXML.findtext('title') == None or (showXML.findtext('tvdbid') == None and showXML.findtext('id') == None):
+                logger.log(u"Invalid info in tvshow.nfo (missing name or id):" \
+                    + str(showXML.findtext('title')) + " " \
+                    + str(showXML.findtext('tvdbid')) + " " \
+                    + str(showXML.findtext('id')))
+                return empty_return
+    
+            name = showXML.findtext('title')
+            if showXML.findtext('tvdbid') != None:
+                tvdb_id = int(showXML.findtext('tvdbid'))
+            elif showXML.findtext('id'):
+                tvdb_id = int(showXML.findtext('id'))
+            else:
+                logger.log(u"Empty <id> or <tvdbid> field in NFO, unable to find an ID", logger.WARNING)
+                return empty_return
+    
+            if not tvdb_id:
+                logger.log(u"Invalid tvdb id ("+str(tvdb_id)+"), not using metadata file", logger.WARNING)
+                return empty_return
+    
+        except (exceptions.NoNFOException, SyntaxError, ValueError), e:
+            logger.log(u"There was an error parsing your existing metadata file: " + str(e), logger.WARNING)
+            return empty_return
+    
+        return (tvdb_id, name)
