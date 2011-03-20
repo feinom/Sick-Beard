@@ -23,14 +23,14 @@ import webbrowser
 import sqlite3
 import datetime
 import socket
-import os, sys, subprocess
+import os, sys, subprocess, re
 import urllib
 
 from threading import Lock
 
 # apparently py2exe won't build these unless they're imported somewhere
 from sickbeard import providers, metadata
-from providers import ezrss, nzbs_org, nzbmatrix, tvbinz, nzbsrus, binreq, newznab, womble, newzbin
+from providers import ezrss, nzbs_org, nzbmatrix, tvbinz, nzbsrus, newznab, womble, newzbin
 
 from sickbeard import searchCurrent, searchBacklog, showUpdater, versionChecker, properFinder, autoPostProcesser
 from sickbeard import helpers, db, exceptions, show_queue, search_queue, scheduler
@@ -42,6 +42,8 @@ from sickbeard.common import *
 from sickbeard.databases import mainDB
 
 from lib.configobj import ConfigObj
+
+invoked_command = None
 
 SOCKET_TIMEOUT = 30
 
@@ -121,6 +123,9 @@ TVDB_API_KEY = '9DAF49C96CBF8DAC'
 TVDB_BASE_URL = None
 TVDB_API_PARMS = {}
 
+USE_NZBS = None
+USE_TORRENTS = None
+
 NZB_METHOD = None
 NZB_DIR = None
 USENET_RETENTION = None
@@ -151,8 +156,6 @@ TVBINZ_AUTH = None
 NZBS = False
 NZBS_UID = None
 NZBS_HASH = None
-
-BINREQ = False
 
 WOMBLE = False
 
@@ -321,7 +324,7 @@ def initialize(consoleLogging=True):
     with INIT_LOCK:
 
         global LOG_DIR, WEB_PORT, WEB_LOG, WEB_ROOT, WEB_USERNAME, WEB_PASSWORD, WEB_HOST, WEB_IPV6, \
-                NZB_METHOD, NZB_DIR, TVBINZ, TVBINZ_UID, TVBINZ_HASH, DOWNLOAD_PROPERS, \
+                USE_NZBS, USE_TORRENTS, NZB_METHOD, NZB_DIR, TVBINZ, TVBINZ_UID, TVBINZ_HASH, DOWNLOAD_PROPERS, \
                 SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_HOST, \
                 XBMC_NOTIFY_ONSNATCH, XBMC_NOTIFY_ONDOWNLOAD, XBMC_UPDATE_FULL, \
                 XBMC_UPDATE_LIBRARY, XBMC_HOST, XBMC_USERNAME, XBMC_PASSWORD, currentSearchScheduler, backlogSearchScheduler, \
@@ -337,7 +340,7 @@ def initialize(consoleLogging=True):
                 NAMING_SHOW_NAME, NAMING_EP_TYPE, NAMING_MULTI_EP_TYPE, CACHE_DIR, TVDB_API_PARMS, \
                 RENAME_EPISODES, properFinderScheduler, PROVIDER_ORDER, autoPostProcesserScheduler, \
                 NAMING_EP_NAME, NAMING_SEP_TYPE, NAMING_USE_PERIODS, WOMBLE, \
-                NZBSRUS, NZBSRUS_UID, NZBSRUS_HASH, BINREQ, NAMING_QUALITY, providerList, newznabProviderList, \
+                NZBSRUS, NZBSRUS_UID, NZBSRUS_HASH, NAMING_QUALITY, providerList, newznabProviderList, \
                 NAMING_DATES, EXTRA_SCRIPTS, USE_TWITTER, TWITTER_USERNAME, TWITTER_PASSWORD, TWITTER_PREFIX, \
                 USE_NOTIFO, NOTIFO_USERNAME, NOTIFO_APISECRET, NOTIFO_NOTIFY_ONDOWNLOAD, NOTIFO_NOTIFY_ONSNATCH, \
                 USE_LIBNOTIFY, LIBNOTIFY_NOTIFY_ONSNATCH, LIBNOTIFY_NOTIFY_ONDOWNLOAD, \
@@ -392,6 +395,8 @@ def initialize(consoleLogging=True):
             CACHE_DIR = None
         
         ROOT_DIRS = check_setting_str(CFG, 'General', 'root_dirs', '')
+        if not re.match(r'\d+\|[^|]+(?:\|[^|]+)*', ROOT_DIRS):
+            ROOT_DIRS = ''
         
         proxies = urllib.getproxies()
         proxy_url = None
@@ -428,6 +433,9 @@ def initialize(consoleLogging=True):
         NAMING_DATES = bool(check_setting_int(CFG, 'General', 'naming_dates', 1))
 
         TVDB_BASE_URL = 'http://www.thetvdb.com/api/' + TVDB_API_KEY
+
+        USE_NZBS = bool(check_setting_int(CFG, 'General', 'use_nzbs', 1))
+        USE_TORRENTS = bool(check_setting_int(CFG, 'General', 'use_torrents', 0))
 
         NZB_METHOD = check_setting_str(CFG, 'General', 'nzb_method', 'blackhole')
         if NZB_METHOD not in ('blackhole', 'sabnzbd'):
@@ -474,8 +482,6 @@ def initialize(consoleLogging=True):
         NEWZBIN = bool(check_setting_int(CFG, 'Newzbin', 'newzbin', 0))
         NEWZBIN_USERNAME = check_setting_str(CFG, 'Newzbin', 'newzbin_username', '')
         NEWZBIN_PASSWORD = check_setting_str(CFG, 'Newzbin', 'newzbin_password', '')
-
-        BINREQ = bool(check_setting_int(CFG, 'Bin-Req', 'binreq', 1))
 
         WOMBLE = bool(check_setting_int(CFG, 'Womble', 'womble', 1))
 
@@ -778,7 +784,6 @@ def halt ():
 def sig_handler(signum=None, frame=None):
     if type(signum) != type(None):
         logger.log(u"Signal %i caught, saving and exiting..." % int(signum))
-        cherrypy.engine.exit()
         saveAndShutdown()
 
 
@@ -828,6 +833,19 @@ def saveAndShutdown(restart=False):
     os._exit(0)
 
 
+def invoke_command(to_call, *args, **kwargs):
+    def delegate():
+        to_call(*args, **kwargs)
+    sickbeard.invoked_command = delegate
+    logger.log(u"Placed invoked command: "+repr(sickbeard.invoked_command)+" for "+repr(to_call)+" with "+repr(args)+" and "+repr(kwargs), logger.DEBUG)
+
+def invoke_restart(soft=True):
+    invoke_command(sickbeard.restart, soft=soft)
+
+def invoke_shutdown():
+    invoke_command(sickbeard.saveAndShutdown)
+
+
 def restart(soft=True):
 
     if soft:
@@ -857,6 +875,8 @@ def save_config():
     new_config['General']['web_root'] = WEB_ROOT
     new_config['General']['web_username'] = WEB_USERNAME
     new_config['General']['web_password'] = WEB_PASSWORD
+    new_config['General']['use_nzbs'] = int(USE_NZBS)
+    new_config['General']['use_torrents'] = int(USE_TORRENTS)
     new_config['General']['nzb_method'] = NZB_METHOD
     new_config['General']['usenet_retention'] = int(USENET_RETENTION)
     new_config['General']['search_frequency'] = int(SEARCH_FREQUENCY)
@@ -927,9 +947,6 @@ def save_config():
     new_config['Newzbin']['newzbin'] = int(NEWZBIN)
     new_config['Newzbin']['newzbin_username'] = NEWZBIN_USERNAME
     new_config['Newzbin']['newzbin_password'] = NEWZBIN_PASSWORD
-
-    new_config['Bin-Req'] = {}
-    new_config['Bin-Req']['binreq'] = int(BINREQ)
 
     new_config['Womble'] = {}
     new_config['Womble']['womble'] = int(WOMBLE)

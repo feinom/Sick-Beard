@@ -1,22 +1,27 @@
 #import sickbeard
+#from sickbeard.providers.generic import GenericProvider
 #set global $title="Config - Providers"
 #set global $header="Search Providers"
 
 #set global $sbPath="../.."
 
-<!--#set global $topmenu="config"#-->
+#set global $topmenu="config"#
 #import os.path
 #include $os.path.join($sickbeard.PROG_DIR, "data/interfaces/default/inc_top.tmpl")
 
 <script type="text/javascript" src="$sbRoot/js/configProviders.js"></script>
 <script type="text/javascript" charset="utf-8">
+<!--
 sbRoot = '$sbRoot'; 
 \$(document).ready(function(){
 
+#if $sickbeard.USE_NZBS:
 #for $curNewznabProvider in $sickbeard.newznabProviderList:
     \$(this).addProvider('$curNewznabProvider.getID()', '$curNewznabProvider.name', '$curNewznabProvider.url', '$curNewznabProvider.key', $int($curNewznabProvider.default));
 #end for
+#end if
 });
+//-->
 </script>
 
 <div id="config">
@@ -32,7 +37,7 @@ sbRoot = '$sbRoot';
                         <h3>Provider Priorities</h3>
                         <p>Check off and drag the providers into the order you want them to be used.</p>
                         <p class="note">At least one provider is required but two are recommended.</p>
-                        <p>More providers offer redundancy but at the expense of a longer search period.</p>
+                        <p>NZB/Torrent providers can be toggled in <a href="$sbRoot/config/search">Search Settings</a></p>
                         <p class="note"><span style="color: #654B24; font-size: 16px;">*</span> Provider does not support backlog searches at this time.</p>
                         <p class="note"><span style="color: #654B24; font-size: 16px;">**</span> Provider supports <b>limited</b> backlog searches, all episodes/qualities may not be available.</p>
                     </div>
@@ -41,6 +46,11 @@ sbRoot = '$sbRoot';
                         <ul id="provider_order_list">
                         #for $curProvider in $sickbeard.providers.sortedProviderList():
                             #if $curProvider.getID() == 'tvbinz' and not $sickbeard.SHOW_TVBINZ
+                                #continue
+                            #end if
+                            #if $curProvider.providerType == $GenericProvider.NZB and not $sickbeard.USE_NZBS:
+                                #continue
+                            #elif $curProvider.providerType == $GenericProvider.TORRENT and not $sickbeard.USE_TORRENTS:
                                 #continue
                             #end if
                             #set $curName = $curProvider.getID()
@@ -61,7 +71,7 @@ sbRoot = '$sbRoot';
                         <input type="hidden" name="provider_order" id="provider_order" value="<%=" ".join([x.getID()+':'+str(int(x.isEnabled())) for x in sickbeard.providers.sortedProviderList()])%>"/>
                         <br/><input type="submit" value="Save Changes" /><br/>
                     </fieldset>
-                </div><!-- /component-group1 -->
+                </div><!-- /component-group1 //-->
 
                 <div id="core-component-group2" class="component-group clearfix">
 
@@ -87,7 +97,7 @@ sbRoot = '$sbRoot';
                         </div>
 
 
-<!-- start div for editing providers -->
+<!-- start div for editing providers //-->
 #if $sickbeard.SHOW_TVBINZ:
 <div class="providerDiv" id="tvbinzDiv">
                         <div class="field-pair">
@@ -170,12 +180,12 @@ sbRoot = '$sbRoot';
                             </label>
                         </div>
 </div>
-<!-- end div for editing providers -->
+<!-- end div for editing providers //-->
 
                     <input type="submit" value="Save Changes" /><br/>
             
                     </fieldset>
-                </div><!-- /component-group2 -->
+                </div><!-- /component-group2 //-->
 
                 <div id="core-component-group3" class="component-group clearfix">
 
@@ -230,12 +240,12 @@ sbRoot = '$sbRoot';
 </div>
 
                     </fieldset>
-                </div><!-- /component-group3 -->
+                </div><!-- /component-group3 //-->
 
                     
             <br/><input type="submit" value="Save Changes" /><br/>
                 
-            </div><!-- /config-components -->
+            </div><!-- /config-components //-->
 
 </form>
 </div></div>
