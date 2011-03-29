@@ -42,6 +42,7 @@ from sickbeard import search_queue
 from sickbeard import image_cache
 
 from sickbeard.notifiers import xbmc
+from sickbeard.notifiers import plex
 from sickbeard.providers import newznab
 from sickbeard.common import *
 
@@ -698,8 +699,8 @@ class ConfigSearch:
 
     @cherrypy.expose
     def saveSearch(self, use_nzbs=None, use_torrents=None, nzb_dir=None, sab_username=None, sab_password=None,
-                       sab_apikey=None, sab_category=None, sab_host=None, torrent_dir=None, nzb_method=None, usenet_retention=None,
-                       search_frequency=None, download_propers=None):
+                       sab_apikey=None, sab_category=None, sab_host=None, nzbget_password=None, nzbget_category=None, nzbget_host=None,
+                       torrent_dir=None, nzb_method=None, usenet_retention=None, search_frequency=None, download_propers=None):
 
         results = []
 
@@ -749,6 +750,11 @@ class ConfigSearch:
             sab_host = sab_host + '/'
 
         sickbeard.SAB_HOST = sab_host
+
+        sickbeard.NZBGET_PASSWORD = nzbget_password
+        sickbeard.NZBGET_CATEGORY = nzbget_category
+        sickbeard.NZBGET_HOST = nzbget_host
+
 
         sickbeard.save_config()
 
@@ -1022,6 +1028,7 @@ class ConfigProviders:
                       nzbs_org_hash=None, nzbmatrix_username=None, nzbmatrix_apikey=None,
                       tvbinz_auth=None, provider_order=None,
                       nzbs_r_us_uid=None, nzbs_r_us_hash=None, newznab_string=None,
+                      tvtorrents_digest=None, tvtorrents_hash=None, 
                       newzbin_username=None, newzbin_password=None):
 
         results = []
@@ -1085,6 +1092,8 @@ class ConfigProviders:
                 sickbeard.WOMBLE = curEnabled
             elif curProvider == 'ezrss':
                 sickbeard.EZRSS = curEnabled
+            elif curProvider == 'tvtorrents':
+                sickbeard.TVTORRENTS = curEnabled
             elif curProvider in newznabProviderDict:
                 newznabProviderDict[curProvider].enabled = bool(curEnabled)
             else:
@@ -1096,6 +1105,9 @@ class ConfigProviders:
             sickbeard.TVBINZ_HASH = tvbinz_hash.strip()
         if tvbinz_auth:
             sickbeard.TVBINZ_AUTH = tvbinz_auth.strip()
+            
+        sickbeard.TVTORRENTS_DIGEST = tvtorrents_digest.strip()
+        sickbeard.TVTORRENTS_HASH = tvtorrents_hash.strip()
 
         sickbeard.NZBS_UID = nzbs_org_uid.strip()
         sickbeard.NZBS_HASH = nzbs_org_hash.strip()
@@ -1134,11 +1146,14 @@ class ConfigNotifications:
     @cherrypy.expose
     def saveNotifications(self, use_xbmc=None, xbmc_notify_onsnatch=None, xbmc_notify_ondownload=None,
                           xbmc_update_library=None, xbmc_update_full=None, xbmc_host=None, xbmc_username=None, xbmc_password=None,
+                          use_plex=None, plex_notify_onsnatch=None, plex_notify_ondownload=None, plex_update_library=None,
+                          plex_server_host=None, plex_host=None, plex_username=None, plex_password=None,
                           use_growl=None, growl_notify_onsnatch=None, growl_notify_ondownload=None, growl_host=None, growl_password=None, 
                           use_prowl=None, prowl_notify_onsnatch=None, prowl_notify_ondownload=None, prowl_api=None, prowl_priority=0, 
                           use_twitter=None, twitter_notify_onsnatch=None, twitter_notify_ondownload=None, 
                           use_notifo=None, notifo_notify_onsnatch=None, notifo_notify_ondownload=None, notifo_username=None, notifo_apisecret=None,
                           use_libnotify=None, libnotify_notify_onsnatch=None, libnotify_notify_ondownload=None,
+                          use_nmj=None, nmj_host=None, nmj_database=None, nmj_mount=None,
                           use_irc=None, irc_notify_onsnatch=None, irc_notify_ondownload=None, irc_server_encryption=None,
                           irc_server=None, irc_server_password=None, irc_channel=None, irc_channel_key=None, irc_nickname=None
                           ):
@@ -1169,7 +1184,27 @@ class ConfigNotifications:
             use_xbmc = 1
         else:
             use_xbmc = 0
-            
+
+        if plex_update_library == "on":
+            plex_update_library = 1
+        else:
+            plex_update_library = 0
+
+        if plex_notify_onsnatch == "on":
+            plex_notify_onsnatch = 1
+        else:
+            plex_notify_onsnatch = 0
+
+        if plex_notify_ondownload == "on":
+            plex_notify_ondownload = 1
+        else:
+            plex_notify_ondownload = 0
+
+        if use_plex == "on":
+            use_plex = 1
+        else:
+            use_plex = 0
+
         if growl_notify_onsnatch == "on":
             growl_notify_onsnatch = 1
         else:
@@ -1179,6 +1214,7 @@ class ConfigNotifications:
             growl_notify_ondownload = 1
         else:
             growl_notify_ondownload = 0
+
         if use_growl == "on":
             use_growl = 1
         else:
@@ -1243,6 +1279,11 @@ class ConfigNotifications:
         else:
             use_notifo = 0
 
+        if use_nmj == "on":
+            use_nmj = 1
+        else:
+            use_nmj = 0
+
         sickbeard.USE_XBMC = use_xbmc
         sickbeard.XBMC_NOTIFY_ONSNATCH = xbmc_notify_onsnatch
         sickbeard.XBMC_NOTIFY_ONDOWNLOAD = xbmc_notify_ondownload
@@ -1251,6 +1292,15 @@ class ConfigNotifications:
         sickbeard.XBMC_HOST = xbmc_host
         sickbeard.XBMC_USERNAME = xbmc_username
         sickbeard.XBMC_PASSWORD = xbmc_password
+
+        sickbeard.USE_PLEX = use_plex
+        sickbeard.PLEX_NOTIFY_ONSNATCH = plex_notify_onsnatch
+        sickbeard.PLEX_NOTIFY_ONDOWNLOAD = plex_notify_ondownload
+        sickbeard.PLEX_UPDATE_LIBRARY = plex_update_library
+        sickbeard.PLEX_HOST = plex_host
+        sickbeard.PLEX_SERVER_HOST = plex_server_host
+        sickbeard.PLEX_USERNAME = plex_username
+        sickbeard.PLEX_PASSWORD = plex_password
 
         sickbeard.USE_GROWL = use_growl
         sickbeard.GROWL_NOTIFY_ONSNATCH = growl_notify_onsnatch
@@ -1288,6 +1338,11 @@ class ConfigNotifications:
         sickbeard.LIBNOTIFY_NOTIFY_ONSNATCH = libnotify_notify_onsnatch == "on"
         sickbeard.LIBNOTIFY_NOTIFY_ONDOWNLOAD = libnotify_notify_ondownload == "on"
 
+        sickbeard.USE_NMJ = use_nmj
+        sickbeard.NMJ_HOST = nmj_host
+        sickbeard.NMJ_DATABASE = nmj_database
+        sickbeard.NMJ_MOUNT = nmj_mount
+
         sickbeard.save_config()
 
         if len(results) > 0:
@@ -1321,13 +1376,17 @@ class Config:
     notifications = ConfigNotifications()
 
 def haveXBMC():
-    return sickbeard.XBMC_HOST != None and len(sickbeard.XBMC_HOST) > 0
+    return sickbeard.XBMC_HOST
+
+def havePLEX():
+    return sickbeard.PLEX_SERVER_HOST
 
 def HomeMenu():
     return [
     { 'title': 'Add Shows',               'path': 'home/addShows/',                         },
     { 'title': 'Manual Post-Processing', 'path': 'home/postprocess/'                        },
     { 'title': 'Update XBMC',            'path': 'home/updateXBMC/', 'requires': haveXBMC   },
+    { 'title': 'Update Plex',            'path': 'home/updatePLEX/', 'requires': havePLEX   },
     { 'title': 'Restart',                'path': 'home/restart/?pid='+str(sickbeard.PID)    },
     { 'title': 'Shutdown',               'path': 'home/shutdown/'                           },
     ]
@@ -1838,11 +1897,35 @@ class Home:
             return "Test notice failed to "+urllib.unquote_plus(host)
 
     @cherrypy.expose
+    def testPLEX(self, host=None, username=None, password=None):
+        result = notifiers.plex_notifier.test_notify(urllib.unquote_plus(host), username, password)
+        if result:
+            return "Test notice sent successfully to "+urllib.unquote_plus(host)
+        else:
+            return "Test notice failed to "+urllib.unquote_plus(host)
+
+    @cherrypy.expose
     def testLibnotify(self):
         if notifiers.libnotify_notifier.test_notify():
             return "Tried sending desktop notification via libnotify"
         else:
             return notifiers.libnotify.diagnose()
+
+    @cherrypy.expose
+    def testNMJ(self, host=None, database=None, mount=None):
+        result = notifiers.nmj_notifier.test_notify(urllib.unquote_plus(host), database, mount)
+        if result:
+            return "Successfull started the scan update"
+        else:
+            return "Test failed to start the scan update"
+
+    @cherrypy.expose
+    def settingsNMJ(self, host=None):
+        result = notifiers.nmj_notifier.notify_settings(urllib.unquote_plus(host))
+        if result:
+            return '{"message": "Got settings from %(host)s", "database": "%(database)s", "mount": "%(mount)s"}' % {"host": host, "database": sickbeard.NMJ_DATABASE, "mount": sickbeard.NMJ_MOUNT}
+        else:
+            return '{"message": "Failed! Make sure your Popcorn is on and NMJ is running. (see Log & Errors -> Debug for detailed info)", "database": "", "mount": ""}'
 
 
     @cherrypy.expose
@@ -2178,6 +2261,18 @@ class Home:
                 ui.flash.message("Command sent to XBMC host " + curHost + " to update library")
             else:
                 ui.flash.error("Unable to contact XBMC host " + curHost)
+        redirect('/home')
+
+
+    @cherrypy.expose
+    def updatePLEX(self):
+
+        if notifiers.plex_notifier._update_library():
+            ui.flash.message("Command sent to Plex Media Server host " + sickbeard.PLEX_HOST + " to update library")
+            logger.log(u"Plex library update initiated for host " + sickbeard.PLEX_HOST, logger.DEBUG)
+        else:
+            ui.flash.error("Unable to contact Plex Media Server host " + sickbeard.PLEX_HOST)
+            logger.log(u"Plex library update failed for host " + sickbeard.PLEX_HOST, logger.ERROR)
         redirect('/home')
 
 

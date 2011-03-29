@@ -1,3 +1,21 @@
+# Author: Nic Wolfe <nic@wolfeden.ca>
+# URL: http://code.google.com/p/sickbeard/
+#
+# This file is part of Sick Beard.
+#
+# Sick Beard is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Sick Beard is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Sick Beard.  If not, see <http://www.gnu.org/licenses/>.
+
 import sickbeard
 import shutil, time, os.path, sys
 
@@ -160,7 +178,11 @@ class NewQualitySettings (NumericProviders):
 
         ### Update episode statuses
         toUpdate = self.connection.select("SELECT episode_id, location, status FROM tv_episodes WHERE status IN (?, ?, ?, ?, ?, ?, ?)", [common.DOWNLOADED, common.SNATCHED, PREDOWNLOADED, MISSED, BACKLOG, DISCBACKLOG, SNATCHED_BACKLOG])
+        didUpdate = False
         for curUpdate in toUpdate:
+
+            # remember that we changed something
+            didUpdate = True
 
             newStatus = None
             oldStatus = int(curUpdate["status"])
@@ -187,6 +209,10 @@ class NewQualitySettings (NumericProviders):
                 newQuality = common.Quality.assumeQuality(curUpdate["location"])
 
             self.connection.action("UPDATE tv_episodes SET status = ? WHERE episode_id = ?", [common.Quality.compositeStatus(common.DOWNLOADED, newQuality), curUpdate["episode_id"]])
+
+        # if no updates were done then the backup is useless
+        if didUpdate:
+            os.remove(ek.ek(os.path.join, sickbeard.PROG_DIR, 'sickbeard.db.v0'))
 
 
         ### Update show qualities
@@ -345,8 +371,12 @@ class SetNzbTorrentSettings(PopulateRootDirs):
             if cur_provider.isEnabled():
                 if cur_provider.providerType == GenericProvider.NZB:
                     use_nzbs = True
+                    logger.log(u"Provider "+cur_provider.name+" is enabled, enabling NZBs in the upgrade")
+                    break
                 elif cur_provider.providerType == GenericProvider.TORRENT:
                     use_torrents = True
+                    logger.log(u"Provider "+cur_provider.name+" is enabled, enabling Torrents in the upgrade")
+                    break
 
         sickbeard.USE_TORRENTS = use_torrents
         sickbeard.USE_NZBS = use_nzbs
@@ -354,4 +384,3 @@ class SetNzbTorrentSettings(PopulateRootDirs):
         sickbeard.save_config()
         
         self.incDBVersion()
-        

@@ -1,21 +1,43 @@
+# Author: Nic Wolfe <nic@wolfeden.ca>
+# URL: http://code.google.com/p/sickbeard/
+#
+# This file is part of Sick Beard.
+#
+# Sick Beard is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Sick Beard is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Sick Beard.  If not, see <http://www.gnu.org/licenses/>.
+
 import sickbeard
 
 import xbmc
+import plex
 import growl
 import prowl
 import tweet
 import irc
 from . import libnotify
 import notifo
+import nmj
 
 from sickbeard.common import *
 
 xbmc_notifier = xbmc.XBMCNotifier()
+plex_notifier = plex.PLEXNotifier()
 growl_notifier = growl.GrowlNotifier()
 prowl_notifier = prowl.ProwlNotifier()
 twitter_notifier = tweet.TwitterNotifier()
 notifo_notifier = notifo.NotifoNotifier()
 libnotify_notifier = libnotify.LibnotifyNotifier()
+nmj_notifier = nmj.NMJNotifier()
 irc_notifier = irc.IRCNotifier()
 
 notifiers = [
@@ -23,9 +45,11 @@ notifiers = [
     # network activity.
     libnotify_notifier,
     xbmc_notifier,
+    plex_notifier,
     growl_notifier,
     prowl_notifier,
     twitter_notifier,
+    nmj_notifier,
     irc_notifier
 ]
 
