@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Sick Beard.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import irclib
 import threading
 import time
@@ -35,6 +34,7 @@ class IRCNotifier(irclib.IRC, threading.Thread):
 
     def run(self):
         threading.Thread.run(self)
+        threading.currentThread().name = "IRC"
         self.srv = self.server()
         self.server_addr, self.server_port = sickbeard.IRC_SERVER.split(":")
         self.connect()
@@ -44,26 +44,39 @@ class IRCNotifier(irclib.IRC, threading.Thread):
         self.disconnect_all(message="SickBeard")
 
     def connect(self):
-        print "IRC: STARTING IRC BOT"
-        self.srv.connect(self.server_addr, int(self.server_port), sickbeard.IRC_NICKNAME,\
-                            password = sickbeard.IRC_SERVER_PASSWORD, ssl=sickbeard.IRC_SERVER_ENCRYPTION)
+        logger.log(u"Connecting to IRC server %s:%s" % (self.server_addr, self.server_port))
+        try:
+            self.srv.connect(self.server_addr, int(self.server_port), sickbeard.IRC_NICKNAME,\
+                                password = sickbeard.IRC_SERVER_PASSWORD, ssl=sickbeard.IRC_SERVER_ENCRYPTION)
+        except irclib.ServerConnectionError:
+            logger.log(u"Unable to connect to IRC server.")
+            time.sleep(5)
+            self.connect()
+
         while (self.srv.is_connected() == 0):
             time.sleep(1)
-        print "IRC: JOINING CHANNEL"
+        
+        logger.log(u"Joining IRC channel %s" % sickbeard.IRC_CHANNEL)
         self.srv.join(sickbeard.IRC_CHANNEL, key=sickbeard.IRC_CHANNEL_KEY)
 
     def notify_snatch(self, ep_name):
         if sickbeard.IRC_NOTIFY_ONSNATCH:
-            print "IRC: notify snatch"
             self.notify(None, "%s: %s" % (common.notifyStrings[common.NOTIFY_SNATCH], ep_name))
 
     def notify_download(self, ep_name):
         if sickbeard.IRC_NOTIFY_ONDOWNLOAD:
-            print "IRC: notify download"
             self.notify(None, "%s: %s" % (common.notifyStrings[common.NOTIFY_DOWNLOAD], ep_name))
 
     def test_notify(self, host, password, ssl, nickname, channel, channel_key):
-        return "IRC test not implemented yet... Please restart sickbeard to test."
+        try:
+            self.start()
+            self.notify(None, "Testing IRC notifications from Sick Beard")
+            self.stop()
+            return True
+        except:
+            return False
+
+        #return "IRC test not implemented yet... Please restart sickbeard to test."
         #self.srv = self.server()
         #self.server_addr, self.server_port = host.split(":")
         #self.srv.connect(self.server_addr, int(self.server_port), nickname,\
@@ -75,12 +88,11 @@ class IRCNotifier(irclib.IRC, threading.Thread):
         #self.srv.disconnect("SickBeard")
 
     def notify(self, type, msg):
-        print "IRC: notify; ", type, msg
+        logger.log(u"Sending IRC notification to %s: %s" % (sickbeard.IRC_CHANNEL, msg))
         try:
             self.srv.privmsg(sickbeard.IRC_CHANNEL, msg)
         except irclib.ServerNotConnectedError:
             self.connect()
             self.srv.privmsg(sickbeard.IRC_CHANNEL, msg)
-
 
 notifier = IRCNotifier
