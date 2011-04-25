@@ -62,26 +62,3 @@ def notify_snatch(ep_name):
     for n in notifiers:
         n.notify_snatch(ep_name)
     notifo_notifier.notify_snatch(ep_name)
-#<<<<<<< HEAD
-#
-#def notify(type, message):
-#
-#    if type == NOTIFY_DOWNLOAD and sickbeard.XBMC_NOTIFY_ONDOWNLOAD == True:
-#            xbmc.notifyXBMC(message, notifyStrings[type])
-#
-#    if type == NOTIFY_SNATCH and sickbeard.XBMC_NOTIFY_ONSNATCH:
-#            xbmc.notifyXBMC(message, notifyStrings[type])
-#
-#    growl.sendGrowl(notifyStrings[type], message)
-#    
-#    prowl.sendProwl(message)
-#
-#    notifo.notifyNotifo(message)
-#
-#    if type == NOTIFY_DOWNLOAD:
-#        tweet.notifyTwitter(message)
-#
-#    if type == NOTIFY_SNATCH:
-#        irc_notifier.notify(notifyStrings[type], message)
-#=======
-#>>>>>>> master
