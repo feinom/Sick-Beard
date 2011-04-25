@@ -19,11 +19,8 @@
 
 import urllib, urllib2
 import socket
-import sys
 import base64
 import time, struct
-
-#import config
 
 import sickbeard
 
@@ -107,8 +104,7 @@ class XBMCNotifier:
             response = handle.read()
             logger.log(u"response: " + response, logger.DEBUG)
         except IOError, e:
-            # print "Warning: Couldn't contact XBMC HTTP server at " + host + ": " + str(e)
-            logger.log(u"Warning: Couldn't contact XBMC HTTP server at " + host + ": " + str(e))
+            logger.log(u"Warning: Couldn't contact XBMC HTTP server at " + host + ": " + e.message.decode(sickbeard.SYS_ENCODING))
             response = ''
     
         return response
@@ -130,10 +126,16 @@ class XBMCNotifier:
     
         fileString = title + "," + input
     
+        result = ''
+    
         for curHost in [x.strip() for x in host.split(",")]:
             command = {'command': 'ExecBuiltIn', 'parameter': 'Notification(' +fileString + ')' }
             logger.log(u"Sending notification to XBMC via host: "+ curHost +"username: "+ username + " password: " + password, logger.DEBUG)
-            return self._sendToXBMC(command, curHost, username, password)
+            if result:
+                result += ', '
+            result += curHost + ':' + self._sendToXBMC(command, curHost, username, password)
+
+        return result
 
     def _update_library(self, host, showName=None):
     
@@ -176,7 +178,7 @@ class XBMCNotifier:
             try:
                 et = etree.fromstring(encSqlXML)
             except SyntaxError, e:
-                logger.log("Unable to parse XML returned from XBMC: "+str(e), logger.ERROR)
+                logger.log("Unable to parse XML returned from XBMC: "+e.message.decode(sickbeard.SYS_ENCODING), logger.ERROR)
                 return False
     
             paths = et.findall('.//field')
@@ -229,7 +231,7 @@ def wakeOnLan(ethernet_address):
 # Test Connection function
 def isHostUp(host,port):
 
-    (family, socktype, proto, garbage, address) = socket.getaddrinfo(host, port)[0]
+    (family, socktype, proto, garbage, address) = socket.getaddrinfo(host, port)[0] #@UnusedVariable
     s = socket.socket(family, socktype, proto)
 
     try:

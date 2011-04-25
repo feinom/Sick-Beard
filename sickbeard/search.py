@@ -18,22 +18,22 @@
 
 from __future__ import with_statement
 
+import os
 import traceback
 
 import sickbeard
 
-from common import *
+from common import SNATCHED, Quality, SEASON_RESULT, MULTI_EP_RESULT
 
-from sickbeard import logger, db, sceneHelpers, exceptions, helpers
+from sickbeard import logger, db, show_name_helpers, exceptions, helpers
 from sickbeard import sab
 from sickbeard import nzbget
 from sickbeard import history
 from sickbeard import notifiers
 from sickbeard import nzbSplitter
-
+from sickbeard import ui
 from sickbeard import encodingKludge as ek
-
-from sickbeard.providers import *
+from sickbeard.exceptions import ex
 from sickbeard import providers
 
 def _downloadResult(result):
@@ -74,7 +74,7 @@ def _downloadResult(result):
             fileOut.close()
             helpers.chmodAsParent(fileName)
         except IOError, e:
-            logger.log(u"Error trying to save NZB to black hole: "+str(e).decode('utf-8'), logger.ERROR)
+            logger.log(u"Error trying to save NZB to black hole: "+ex(e), logger.ERROR)
             newResult = False
 
     elif resProvider.providerType == "torrent":
@@ -83,6 +83,9 @@ def _downloadResult(result):
     else:
         logger.log(u"Invalid provider type - this is a coding error, report it please", logger.ERROR)
         return False
+
+    if newResult:
+        ui.notifications.message('Episode <b>%s</b> snatched from <b>%s</b>' % (result.name, resProvider.name))
 
     return newResult
 
@@ -151,10 +154,10 @@ def searchForNeededEpisodes():
         try:
             curFoundResults = curProvider.searchRSS()
         except exceptions.AuthException, e:
-            logger.log(u"Authentication error: "+str(e).decode('utf-8'), logger.ERROR)
+            logger.log(u"Authentication error: "+ex(e), logger.ERROR)
             continue
         except Exception, e:
-            logger.log(u"Error while searching "+curProvider.name+", skipping: "+str(e).decode('utf-8'), logger.ERROR)
+            logger.log(u"Error while searching "+curProvider.name+", skipping: "+ex(e), logger.ERROR)
             logger.log(traceback.format_exc(), logger.DEBUG)
             continue
 
@@ -194,7 +197,7 @@ def pickBestResult(results, quality_list=None):
     # find the best result for the current episode
     bestResult = None
     for cur_result in results:
-        logger.log("Quality of "+cur_result.name+" is "+str(cur_result.quality))
+        logger.log("Quality of "+cur_result.name+" is "+Quality.qualityStrings[cur_result.quality])
         
         if quality_list and cur_result.quality not in quality_list:
             logger.log(cur_result.name+" is a quality we know we don't want, rejecting it", logger.DEBUG)
@@ -232,17 +235,17 @@ def findEpisode(episode, manualSearch=False):
         try:
             curFoundResults = curProvider.findEpisode(episode, manualSearch=manualSearch)
         except exceptions.AuthException, e:
-            logger.log(u"Authentication error: "+str(e).decode('utf-8'), logger.ERROR)
+            logger.log(u"Authentication error: "+ex(e), logger.ERROR)
             continue
         except Exception, e:
-            logger.log(u"Error while searching "+curProvider.name+", skipping: "+str(e).decode('utf-8'), logger.ERROR)
+            logger.log(u"Error while searching "+curProvider.name+", skipping: "+ex(e), logger.ERROR)
             logger.log(traceback.format_exc(), logger.DEBUG)
             continue
 
         didSearch = True
 
         # skip non-tv crap
-        curFoundResults = filter(lambda x: sceneHelpers.filterBadReleases(x.name) and sceneHelpers.isGoodResult(x.name, episode.show), curFoundResults)
+        curFoundResults = filter(lambda x: show_name_helpers.filterBadReleases(x.name) and show_name_helpers.isGoodResult(x.name, episode.show), curFoundResults)
 
         foundResults += curFoundResults
 
@@ -273,7 +276,7 @@ def findSeason(show, season):
             for curEp in curResults:
 
                 # skip non-tv crap
-                curResults[curEp] = filter(lambda x:  sceneHelpers.filterBadReleases(x.name) and sceneHelpers.isGoodResult(x.name, show), curResults[curEp])
+                curResults[curEp] = filter(lambda x:  show_name_helpers.filterBadReleases(x.name) and show_name_helpers.isGoodResult(x.name, show), curResults[curEp])
 
                 if curEp in foundResults:
                     foundResults[curEp] += curResults[curEp]
@@ -281,10 +284,10 @@ def findSeason(show, season):
                     foundResults[curEp] = curResults[curEp]
 
         except exceptions.AuthException, e:
-            logger.log(u"Authentication error: "+str(e).decode('utf-8'), logger.ERROR)
+            logger.log(u"Authentication error: "+ex(e), logger.ERROR)
             continue
         except Exception, e:
-            logger.log(u"Error while searching "+curProvider.name+", skipping: "+str(e).decode('utf-8'), logger.ERROR)
+            logger.log(u"Error while searching "+curProvider.name+", skipping: "+ex(e), logger.ERROR)
             logger.log(traceback.format_exc(), logger.DEBUG)
             continue
 
@@ -348,7 +351,7 @@ def findSeason(show, season):
             # if not, break it apart and add them as the lowest priority results
             individualResults = nzbSplitter.splitResult(bestSeasonNZB)
 
-            individualResults = filter(lambda x:  sceneHelpers.filterBadReleases(x.name) and sceneHelpers.isGoodResult(x.name, show), individualResults)
+            individualResults = filter(lambda x:  show_name_helpers.filterBadReleases(x.name) and show_name_helpers.isGoodResult(x.name, show), individualResults)
 
             for curResult in individualResults:
                 if len(curResult.episodes) == 1:

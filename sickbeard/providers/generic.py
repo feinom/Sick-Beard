@@ -18,21 +18,20 @@
 
 
 
-import urllib2
-import os.path
-import sys
 import datetime
-import time
-
-import xml.etree.cElementTree as etree
+import os
+import sys
+import re
+import urllib2
 
 import sickbeard
 
-from sickbeard import helpers, classes, exceptions, logger, db
+from sickbeard import helpers, classes, logger, db
 
-from sickbeard.common import *
+from sickbeard.common import Quality, MULTI_EP_RESULT, SEASON_RESULT
 from sickbeard import tvcache
 from sickbeard import encodingKludge as ek
+from sickbeard.exceptions import ex
 
 from lib.hachoir_parser import createParser
 
@@ -112,7 +111,7 @@ class GenericProvider:
         try:
             result = helpers.getURL(url, headers)
         except (urllib2.HTTPError, IOError), e:
-            logger.log(u"Error loading "+self.name+" URL: " + str(sys.exc_info()) + " - " + str(e), logger.ERROR)
+            logger.log(u"Error loading "+self.name+" URL: " + str(sys.exc_info()) + " - " + e.message.decode(sickbeard.SYS_ENCODING), logger.ERROR)
             return None
 
         return result
@@ -150,7 +149,7 @@ class GenericProvider:
             fileOut.close()
             helpers.chmodAsParent(fileName)
         except IOError, e:
-            logger.log("Unable to save the file: "+str(e).decode('utf-8'), logger.ERROR)
+            logger.log("Unable to save the file: "+ex(e), logger.ERROR)
             return False
 
         # as long as it's a valid download then consider it a successful snatch
@@ -229,7 +228,7 @@ class GenericProvider:
                 logger.log(u"Unable to parse the filename "+title+" into a valid episode", logger.WARNING)
                 continue
 
-            if episode.show.is_air_by_date:
+            if episode.show.air_by_date:
                 if parse_result.air_date != episode.airdate:
                     logger.log("Episode "+title+" didn't air on "+str(episode.airdate)+", skipping it", logger.DEBUG)
                     continue
@@ -278,7 +277,7 @@ class GenericProvider:
                 logger.log(u"Unable to parse the filename "+title+" into a valid episode", logger.WARNING)
                 continue
 
-            if not show.is_air_by_date:
+            if not show.air_by_date:
                 # this check is meaningless for non-season searches
                 if (parse_result.season_number != None and parse_result.season_number != season) or (parse_result.season_number == None and season != 1):
                     logger.log(u"The result "+title+" doesn't seem to be a valid episode for season "+str(season)+", ignoring")
