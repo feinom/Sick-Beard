@@ -527,7 +527,7 @@
 
                 </div>
 
-                <div id="core-component-group4" class="component-group clearfix">
+                <div id="core-component-group8" class="component-group clearfix">
                 
                     <div class="component-group-desc">
                         <h3>IRC</h3>
@@ -536,11 +536,15 @@
 
                     <fieldset class="component-group-list">
                         <div class="field-pair">
-                            <input type="checkbox" name="use_irc" id="use_irc" #if $sickbeard.USE_IRC then "checked=\"checked\"" else ""# />
+                            <input type="checkbox" class="enabler" name="use_irc" id="use_irc" #if $sickbeard.USE_IRC then "checked=\"checked\"" else ""# />
                             <label class="clearfix" for="use_irc">
                                 <span class="component-title">Enable</span>
                                 <span class="component-desc">Should Sick Beard send IRC notifications?</span>
                             </label>
+                        </div>
+
+                        <div id="content_use_irc">
+                        <div class="field-pair">
                             <label class="nocheck clearfix" for="use_irc">
                                 <span class="component-title">&nbsp;</span>
                                 <span class="component-desc">You may want to use an encrypted server.</span>
@@ -630,9 +634,9 @@
                     <input type="submit" value="Save Changes" />
 
                     </fieldset>
-                </div><!-- /component-group //-->
+                </div><!-- /content_use_irc //-->
 
-                <div id="core-component-group8" class="component-group clearfix">
+                <div id="core-component-group9" class="component-group clearfix">
 
                     <div class="component-group-desc">
                         <h3><a href="http://www.popcornhour.com/" onclick="window.open(this.href, '_blank'); return false;"><img src="$sbRoot/images/notifiers/nmj.gif" alt="Networked Media Jukebox" title="Networked Media Jukebox" width="16" height="16" /> NMJ</a></h3>
