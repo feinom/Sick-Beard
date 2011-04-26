@@ -373,7 +373,7 @@ def initialize(consoleLogging=True):
                 USE_LIBNOTIFY, LIBNOTIFY_NOTIFY_ONSNATCH, LIBNOTIFY_NOTIFY_ONDOWNLOAD, USE_NMJ, NMJ_HOST, NMJ_DATABASE, NMJ_MOUNT, \
                 USE_BANNER, USE_LISTVIEW, METADATA_XBMC, METADATA_MEDIABROWSER, METADATA_PS3, metadata_provider_dict, \
                 NEWZBIN, NEWZBIN_USERNAME, NEWZBIN_PASSWORD, GIT_PATH, MOVE_ASSOCIATED_FILES, \
-                COMING_EPS_LAYOUT, COMING_EPS_SORT, COMING_EPS_DISPLAY_PAUSED, METADATA_WDTV, IGNORE_WORDS
+                COMING_EPS_LAYOUT, COMING_EPS_SORT, COMING_EPS_DISPLAY_PAUSED, METADATA_WDTV, IGNORE_WORDS, \
                 IRC_NOTIFY_ONSNATCH, IRC_NOTIFY_ONDOWNLOAD, USE_IRC, IRC_SERVER, IRC_SERVER_PASSWORD, \
                 IRC_SERVER_ENCRYPTION, IRC_NICKNAME, IRC_CHANNEL, IRC_CHANNEL_KEY
 
@@ -560,6 +560,7 @@ def initialize(consoleLogging=True):
         PROWL_API = check_setting_str(CFG, 'Prowl', 'prowl_api', '')
         PROWL_PRIORITY = check_setting_str(CFG, 'Prowl', 'prowl_priority', "0")
 
+#>>>>>>> master
         USE_TWITTER = bool(check_setting_int(CFG, 'Twitter', 'use_twitter', 0))
         TWITTER_NOTIFY_ONSNATCH = bool(check_setting_int(CFG, 'Twitter', 'twitter_notify_onsnatch', 0))
         TWITTER_NOTIFY_ONDOWNLOAD = bool(check_setting_int(CFG, 'Twitter', 'twitter_notify_ondownload', 0))        
@@ -737,7 +738,7 @@ def start():
         if __INITIALIZED__:
             
             # start the irc bot if it has been enabled
-            if sickbeard.USE_IRC:
+            if USE_IRC:
                 notifiers.irc_notifier.start()
 
             # start the search scheduler
@@ -779,7 +780,7 @@ def halt ():
             logger.log(u"Aborting all threads")
             
             # shut down IRC bot if it is active
-            if sickbeard.USE_IRC:
+            if USE_IRC:
                 notifiers.irc_notifier.stop()
 
             # abort all the threads
