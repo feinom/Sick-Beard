@@ -111,7 +111,7 @@ class GenericProvider:
         try:
             result = helpers.getURL(url, headers)
         except (urllib2.HTTPError, IOError), e:
-            logger.log(u"Error loading "+self.name+" URL: " + str(sys.exc_info()) + " - " + e.message.decode(sickbeard.SYS_ENCODING), logger.ERROR)
+            logger.log(u"Error loading "+self.name+" URL: " + str(sys.exc_info()) + " - " + ex(e), logger.ERROR)
             return None
 
         return result
@@ -163,9 +163,15 @@ class GenericProvider:
         # primitive verification of torrents, just make sure we didn't get a text file or something
         if self.providerType == GenericProvider.TORRENT:
             parser = createParser(file_name)
-            if not parser or parser._getMimeType() != 'application/x-bittorrent':
-                logger.log(u"Result is not a valid torrent file", logger.WARNING)
-                return False
+            if parser:
+                mime_type = parser._getMimeType()
+                try:
+                    parser.stream._input.close()
+                except:
+                    pass
+                if mime_type != 'application/x-bittorrent':
+                    logger.log(u"Result is not a valid torrent file", logger.WARNING)
+                    return False
 
         return True
 

@@ -27,6 +27,7 @@ import irc
 from . import libnotify
 import notifo
 import nmj
+import synoindex
 
 from sickbeard.common import *
 
@@ -38,6 +39,7 @@ twitter_notifier = tweet.TwitterNotifier()
 notifo_notifier = notifo.NotifoNotifier()
 libnotify_notifier = libnotify.LibnotifyNotifier()
 nmj_notifier = nmj.NMJNotifier()
+synoindex_notifier = synoindex.synoIndexNotifier()
 irc_notifier = irc.IRCNotifier()
 
 notifiers = [
@@ -50,7 +52,8 @@ notifiers = [
     prowl_notifier,
     twitter_notifier,
     nmj_notifier,
-    irc_notifier
+    synoindex_notifier,
+    irc_notifier,
 ]
 
 def notify_download(ep_name):

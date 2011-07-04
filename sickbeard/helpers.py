@@ -21,7 +21,7 @@ import StringIO, zlib, gzip
 import os
 import stat
 import urllib, urllib2
-import re
+import re, socket
 import shutil
 
 import sickbeard
@@ -32,6 +32,7 @@ from sickbeard.common import USER_AGENT, mediaExtensions, XML_NSMAP
 
 from sickbeard import db
 from sickbeard import encodingKludge as ek
+from sickbeard.exceptions import ex
 
 from lib.tvdb_api import tvdb_api, tvdb_exceptions
 
@@ -124,17 +125,21 @@ def getURL (url, headers=[]):
 
     encoding = usock.info().get("Content-Encoding")
 
-    if encoding in ('gzip', 'x-gzip', 'deflate'):
-        content = usock.read()
-        if encoding == 'deflate':
-            data = StringIO.StringIO(zlib.decompress(content))
-        else:
-            data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(content))
-        result = data.read()
+    try:
+        if encoding in ('gzip', 'x-gzip', 'deflate'):
+            content = usock.read()
+            if encoding == 'deflate':
+                data = StringIO.StringIO(zlib.decompress(content))
+            else:
+                data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(content))
+            result = data.read()
 
-    else:
-        result = usock.read()
-        usock.close()
+        else:
+            result = usock.read()
+            usock.close()
+    except socket.timeout:
+        logger.log(u"Timed out while loading URL "+url, logger.WARNING)
+        return None
 
     return result
 
@@ -407,7 +412,7 @@ def rename_file(old_path, new_name):
     try:
         ek.ek(os.rename, old_path, new_path)
     except (OSError, IOError), e:
-        logger.log(u"Failed renaming " + old_path + " to " + new_path + ": " + e.message.decode(sickbeard.SYS_ENCODING), logger.ERROR)
+        logger.log(u"Failed renaming " + old_path + " to " + new_path + ": " + ex(e), logger.ERROR)
         return False
 
     return new_path
