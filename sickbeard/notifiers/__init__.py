@@ -26,8 +26,10 @@ import tweet
 import irc
 from . import libnotify
 import notifo
+import boxcar
 import nmj
 import synoindex
+import trakt
 
 from sickbeard.common import *
 
@@ -37,9 +39,11 @@ growl_notifier = growl.GrowlNotifier()
 prowl_notifier = prowl.ProwlNotifier()
 twitter_notifier = tweet.TwitterNotifier()
 notifo_notifier = notifo.NotifoNotifier()
+boxcar_notifier = boxcar.BoxcarNotifier()
 libnotify_notifier = libnotify.LibnotifyNotifier()
 nmj_notifier = nmj.NMJNotifier()
 synoindex_notifier = synoindex.synoIndexNotifier()
+trakt_notifier = trakt.TraktNotifier()
 irc_notifier = irc.IRCNotifier()
 
 notifiers = [
@@ -53,6 +57,8 @@ notifiers = [
     twitter_notifier,
     nmj_notifier,
     synoindex_notifier,
+    boxcar_notifier,
+    trakt_notifier,
     irc_notifier,
 ]
 
@@ -65,3 +71,4 @@ def notify_snatch(ep_name):
     for n in notifiers:
         n.notify_snatch(ep_name)
     notifo_notifier.notify_snatch(ep_name)
+
